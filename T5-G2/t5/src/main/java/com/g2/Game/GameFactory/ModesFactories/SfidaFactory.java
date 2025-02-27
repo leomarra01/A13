@@ -1,4 +1,4 @@
-package com.g2.Game.GameFactory;
+package com.g2.Game.GameFactory.ModesFactories;
 
 import org.springframework.stereotype.Component;
 

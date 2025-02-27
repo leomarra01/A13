@@ -1,6 +1,6 @@
 package com.g2.Game.GameModes;
 
-import com.g2.Game.GameModes.Coverage.CompileResult;
+import com.g2.Game.GameModes.Compile.CompileResult;
 import com.g2.Interfaces.ServiceManager;
 
 public class Allenamento extends GameLogic{

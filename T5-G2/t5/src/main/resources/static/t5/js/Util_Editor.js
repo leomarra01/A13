@@ -322,7 +322,6 @@ function highlightCodeCoverage(reportContent, editor) {
 // Funzione per ottenere i dati del form da inviare
 function getFormData() {
 	const formData = new FormData();
-	const className = localStorage.getItem("underTestClassName");
 	formData.append("testingClassCode", editor_utente.getValue());
 	formData.append("playerId", String(parseJwt(getCookie("jwt")).userId));
 	formData.append("mode", "sfida"); //Gestire modalità di gioco 

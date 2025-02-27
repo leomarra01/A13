@@ -58,11 +58,9 @@ public class ServiceLogicComponent extends GenericLogicComponent {
     public boolean executeLogic() {
         try {
             // Esegue la logica richiesta tramite il ServiceManager
-            Boolean result = (Boolean) serviceManager.handleRequest(serviceName, action, params);
-            return result;
+            return (Boolean) serviceManager.handleRequest(serviceName, action, params);
         } catch (Exception e) {
             // Gestione dell'eccezione, ad esempio log dell'errore
-            System.err.println("Errore durante l'esecuzione della logica: " + e.getMessage());
             return false;
         }
     }

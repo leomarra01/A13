@@ -102,7 +102,7 @@ public class GameController {
             @RequestParam(value = "testingClassCode", required = false, defaultValue = "") String testingClassCode,
             @RequestParam(value = "playerId") String playerId,
             @RequestParam("mode") String mode,
-            @RequestParam("isGameEnd") Boolean isGameEnd) {
+            @RequestParam("isGameEnd") boolean isGameEnd) {
         try {
             GameResponseDTO response = gameServiceManager.PlayGame(playerId, mode, testingClassCode, isGameEnd);
             return ResponseEntity.ok().body(response);

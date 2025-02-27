@@ -21,7 +21,7 @@ import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 
-import com.g2.Game.GameModes.Coverage.CompileResult;
+import com.g2.Game.GameModes.Compile.CompileResult;
 import com.g2.Interfaces.ServiceManager;
 
 public class Sfida extends GameLogic {

@@ -24,7 +24,6 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
-import com.g2.Model.Notification;
 import com.g2.Model.NotificationResponse;
 import com.g2.Model.User;
 
@@ -53,8 +52,8 @@ public class T23Service extends BaseService {
         ));
 
         registerAction("GetUsersByList", new ServiceActionDefinition(
-            params -> GetUserByList((List<String>) params[0]),
-            List.class
+                params -> GetUserByList((List<String>) params[0]),
+                List.class
         ));
 
         registerAction("UpdateProfile", new ServiceActionDefinition(
@@ -136,26 +135,27 @@ public class T23Service extends BaseService {
 
     //Do una lista di ID e mi ritorna una lista di User
     // Implementata a mano perchè un po' strana è una POST che ottiene dati come una GET
-    private List<User> GetUserByList(List<String> idsStudenti){
+    private List<User> GetUserByList(List<String> idsStudenti) {
         final String endpoint = "/getStudentiTeam";
         // Crea un oggetto HttpEntity con i dati che vogliamo inviare (la lista degli ID)
         HttpEntity<List<String>> requestEntity = new HttpEntity<>(idsStudenti);
-         // Esegui la chiamata POST all'endpoint
-         ResponseEntity<?> responseEntity = restTemplate.exchange(
-                 BASE_URL + endpoint,  // URL dell'endpoint
-                 HttpMethod.POST,  // Tipo di richiesta POST
-                 requestEntity,  // Corpo della richiesta (lista di studenti)
-                 new ParameterizedTypeReference<List<User>>() {}  // Tipo di risposta che ci aspettiamo
-         );
- 
-         // Gestisci la risposta
-         if (responseEntity.getStatusCode().is2xxSuccessful()) {
+        // Esegui la chiamata POST all'endpoint
+        ResponseEntity<?> responseEntity = restTemplate.exchange(
+                BASE_URL + endpoint, // URL dell'endpoint
+                HttpMethod.POST, // Tipo di richiesta POST
+                requestEntity, // Corpo della richiesta (lista di studenti)
+                new ParameterizedTypeReference<List<User>>() {
+        } // Tipo di risposta che ci aspettiamo
+        );
+
+        // Gestisci la risposta
+        if (responseEntity.getStatusCode().is2xxSuccessful()) {
             @SuppressWarnings("unchecked")
             List<User> users = (List<User>) responseEntity.getBody();
             return users;
-         } else {
+        } else {
             return null;
-         }
+        }
     }
 
     // Metodo per modificare il profilo di un utente
@@ -184,7 +184,7 @@ public class T23Service extends BaseService {
         return callRestPost(endpoint, map, null, String.class);
     }
 
-    public List<Notification> getNotifications(String userEmail, int page, int size) {
+    public NotificationResponse getNotifications(String userEmail, int page, int size) {
         final String endpoint = "/notifications";
         // Creazione dei parametri di query, inclusi email, pagina e dimensione
         Map<String, String> queryParams = Map.of(
@@ -192,16 +192,19 @@ public class T23Service extends BaseService {
                 "page", String.valueOf(page),
                 "size", String.valueOf(size)
         );
-        
+
         ResponseEntity<NotificationResponse> response = restTemplate.exchange(
-            buildUri(endpoint, queryParams),
-            HttpMethod.GET,
-            null, // Puoi aggiungere intestazioni, se necessario
-            NotificationResponse.class
+                buildUri(endpoint, queryParams),
+                HttpMethod.GET,
+                null, // Puoi aggiungere intestazioni, se necessario
+                NotificationResponse.class
         );
 
-        NotificationResponse notificationResponse = response.getBody();
-        return notificationResponse.getContent();
+        if (response == null) {
+            return new NotificationResponse();
+        }else{
+            return response.getBody();
+        }
     }
 
     public String updateNotification(String userEmail, String notificationID) {
@@ -230,7 +233,6 @@ public class T23Service extends BaseService {
         Map<String, String> queryParams = Map.of("email", userEmail);
         return callRestDelete(endpoint, queryParams);
     }
-
 
     /*
     *   Metodo per follow/unfollow di un utente

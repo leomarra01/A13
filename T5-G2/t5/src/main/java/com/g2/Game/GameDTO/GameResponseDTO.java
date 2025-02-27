@@ -1,7 +1,7 @@
 package com.g2.Game.GameDTO;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.g2.Game.GameModes.Coverage.CompileResult;
+import com.g2.Game.GameModes.Compile.CompileResult;
 
 public class GameResponseDTO {
 

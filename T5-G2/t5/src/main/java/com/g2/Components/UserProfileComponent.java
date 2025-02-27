@@ -16,6 +16,7 @@
  */
 package com.g2.Components;
 
+import java.util.Collections;
 import java.util.Map;
 
 import com.g2.Interfaces.ServiceManager;
@@ -28,7 +29,7 @@ import com.g2.Model.User;
 public class UserProfileComponent extends GenericObjectComponent {
 
     private final ServiceManager serviceManager;
-    private final Boolean IsFriendProfile;
+    private final boolean IsFriendProfile;
     private final String userID;
     private final String FriendID;
 
@@ -71,12 +72,11 @@ public class UserProfileComponent extends GenericObjectComponent {
      *
      * @return una mappa con i dati del profilo utente.
      */
-    @SuppressWarnings("unchecked")
     @Override
     public Map<String, Object> getModel() {
         try {
             // Inserisce i dati del profilo utente nel modello con la chiave specificata
-            User user = (User) serviceManager.handleRequest("T23", "GetUser", this.userID);
+            User user = serviceManager.handleRequest("T23", "GetUser", User.class, this.userID);
             if (this.IsFriendProfile) {
                 User FriendUser = (User) serviceManager.handleRequest("T23", "GetUser", this.FriendID);
                 this.Model.put("user", FriendUser);
@@ -91,7 +91,7 @@ public class UserProfileComponent extends GenericObjectComponent {
         } catch (Exception e) {
             // Gestione delle eccezioni, ad esempio log dell'errore
             System.err.println("[UserProfileComponent]Errore durante il recupero del profilo utente: " + e.getMessage());
-            return null;
+            return Collections.emptyMap();
         }
     }
 }

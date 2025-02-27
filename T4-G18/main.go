@@ -138,30 +138,26 @@ func run(ctx context.Context, c Configuration) error {
 		&model.Robot{},
 		&model.PlayerHasCategoryAchievement{},
 	)
-
+	
 	if err != nil {
 		return err
 	}
-
 	/*
 	*  Questo definisce una relazione molti-a-molti tra Game e Player attraverso la tabella PlayerGame.
 	*/
 	if err := db.SetupJoinTable(&model.Game{}, "Players", &model.PlayerGame{}); err != nil {
 		return err
 	}
-
 	/*
 	*  Crea una directory per i file di dati necessari al servizio.
 	*/
 	if err := os.Mkdir(c.DataDir, os.ModePerm); err != nil && !errors.Is(err, os.ErrExist) {
 		return fmt.Errorf("cannot create data directory: %w", err)
 	}
-
 	/*
 	*	inizializza un router HTTP per gestire le API REST.
 	*/
 	r := chi.NewRouter()
-
 	/*
 	*	Cross-Origin Resource Sharing
 	*   Configura CORS, consentendo a qualsiasi origine di fare richieste HTTP.
@@ -174,7 +170,6 @@ func run(ctx context.Context, c Configuration) error {
 		AllowCredentials: false,
 		MaxAge:           300, // Maximum value not ignored by any of major browsers
 	}))
-
 	/*
 	*	SwaggerUI serve la documentazione delle API a /docs
 	*/
@@ -188,17 +183,13 @@ func run(ctx context.Context, c Configuration) error {
 			})
 		})
 	}
-
 	// serving Postman directory for documentation files
 	fs := http.FileServer(http.FS(postmanDir))
 	r.Mount("/public/", http.StripPrefix("/public/", fs))
-
 	/*
 	*   Endpoint metriche Prometheus
 	*/
 	r.Handle("/metrics", promhttp.Handler())
-
-
 	/*
 	*	middleware.RealIP: Ottiene l'IP reale del client.
 	*	middleware.Logger: Registra le richieste HTTP.
@@ -370,7 +361,6 @@ func startHttpServer(ctx context.Context, r chi.Router, addr string) error {
 *	La funzione cleanup gestisce un'operazione di pulizia nel database e nel filesystem
 */
 func cleanup(db *gorm.DB) (int64, error) {
-
 	/*
 	*	metadata: una slice che contiene i record della tabella Metadata, estratti dal database.
 	*	err: una variabile che memorizza eventuali errori che si verificano durante l'esecuzione.
@@ -390,7 +380,6 @@ func cleanup(db *gorm.DB) (int64, error) {
 	*
 	*/
 	err = db.Transaction(func(tx *gorm.DB) error {
-
 		/*
 		*	seleziona tutti i record dalla tabella Metadata che hanno un campo turn_id NULL.
 		*	Find(&metadata): esegue la query e memorizza i risultati nella variabile metadata.
@@ -472,14 +461,7 @@ func makeDefaults(c *Configuration) {
 *	In particolare, crea endpoint per varie entità 
 *	Ogni entità ha un set di operazioni CRUD (Create, Read, Update, Delete) definite tramite rotte HTTP
 */
-func setupRoutes(
-				 gc *game.Controller, 
-				 rc *round.Controller, 
-				 tc *turn.Controller, 
-				 roc *robot.Controller, 
-				 sgc *scalatagame.Controller, 
-				 pc *playerhascategoryachievement.Controller
-				) *chi.Mux {
+func setupRoutes(gc *game.Controller, rc *round.Controller, tc *turn.Controller, roc *robot.Controller, sgc *scalatagame.Controller, pc *playerhascategoryachievement.Controller) *chi.Mux {
 
 	r := chi.NewRouter()
 

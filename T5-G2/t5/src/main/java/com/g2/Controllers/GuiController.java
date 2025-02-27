@@ -23,7 +23,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
-import java.util.Optional;
 
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,13 +41,8 @@ import com.g2.Components.PageBuilder;
 import com.g2.Components.ServiceObjectComponent;
 import com.g2.Components.VariableValidationLogicComponent;
 import com.g2.Interfaces.ServiceManager;
-import com.g2.Model.AchievementProgress;
 import com.g2.Model.ClassUT;
-import com.g2.Model.Game;
 import com.g2.Model.ScalataGiocata;
-import com.g2.Model.User;
-import com.g2.Service.AchievementService;
-import com.g2.t5.GameDataWriter;
 import com.g2.t5.ScalataDataWriter;
 
 import jakarta.servlet.http.Cookie;
@@ -61,8 +55,6 @@ public class GuiController {
 
     private final ServiceManager serviceManager;
     private final LocaleResolver localeResolver;
-    @Autowired
-    private AchievementService achievementService;
 
     public GuiController(ServiceManager serviceManager, LocaleResolver localeResolver) {
         this.serviceManager = serviceManager;
@@ -78,7 +70,7 @@ public class GuiController {
         cookie.setMaxAge(3600); // Imposta la durata del cookie a 1 ora
         cookie.setPath("/"); // Imposta il percorso per il cookie
         response.addCookie(cookie); // Aggiungi il cookie alla risposta
-        Locale locale = new Locale(lang);
+        Locale locale = Locale.forLanguageTag(lang);
         localeResolver.setLocale(request, response, locale);
         // Restituisce una risposta vuota con codice di stato 200 OK
         return ResponseEntity.ok().build();
@@ -216,6 +208,7 @@ public class GuiController {
         }
     }
 
+    /* 
     @PostMapping("/save-data")
     public ResponseEntity<String> saveGame(@RequestParam("playerId") int playerId,
             @RequestParam("robot") String robot,
@@ -269,10 +262,11 @@ public class GuiController {
 
         return ResponseEntity.ok(ids.toString());
     }
+    */
 
     @GetMapping("/leaderboardScalata")
     public String getLeaderboardScalata(Model model, @CookieValue(name = "jwt", required = false) String jwt) {
-        Boolean Auth = (Boolean) serviceManager.handleRequest("T23", "GetAuthenticated", jwt);
+        boolean Auth = (boolean) serviceManager.handleRequest("T23", "GetAuthenticated", jwt);
         if (Auth) {
             return "leaderboardScalata";
         }

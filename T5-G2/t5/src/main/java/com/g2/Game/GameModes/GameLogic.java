@@ -22,7 +22,7 @@ import java.time.format.DateTimeFormatter;
 
 import org.json.JSONArray;
 
-import com.g2.Game.GameModes.Coverage.CompileResult;
+import com.g2.Game.GameModes.Compile.CompileResult;
 import com.g2.Interfaces.ServiceManager;
 
 public abstract class GameLogic {

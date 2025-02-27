@@ -1,4 +1,4 @@
-package com.g2.Game.GameFactory;
+package com.g2.Game.GameFactory.ModesFactories;
 
 import org.springframework.stereotype.Component;
 
@@ -8,7 +8,6 @@ import com.g2.Interfaces.ServiceManager;
 
 @Component("Allenamento")
 public class AllenamentoFactory implements GameFactoryFunction {
-
     @Override
     public GameLogic create(ServiceManager sm, String playerId, String underTestClassName,
             String type_robot, String difficulty, String mode) {

@@ -3,6 +3,7 @@ import java.util.Map;
 
 import org.springframework.stereotype.Component;
 
+import com.g2.Game.GameFactory.ModesFactories.GameFactoryFunction;
 import com.g2.Game.GameModes.GameLogic;
 import com.g2.Interfaces.ServiceManager;
 
@@ -10,8 +11,6 @@ import com.g2.Interfaces.ServiceManager;
  *  Quando chiamiamo createGame("Sfida", ...), Spring trova automaticamente la factory corretta. grazie ai Bean
  *  Espandibilità → Per aggiungere un nuovo gioco, basta creare una nuova factory con @Component.
  */
-
-
 @Component
 public class GameRegistry {
     private final Map<String, GameFactoryFunction> gameRegistry;
