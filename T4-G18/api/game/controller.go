@@ -15,6 +15,7 @@ type Service interface {
 	Update(id int64, ug *UpdateRequest) (Game, error)
 	FindByInterval(accountId string, i api.IntervalParams, p api.PaginationParams) ([]Game, int64, error)
 }
+
 type Controller struct {
 	service Service
 }

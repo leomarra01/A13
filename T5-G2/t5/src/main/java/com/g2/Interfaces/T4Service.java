@@ -16,20 +16,22 @@
  */
 package com.g2.Interfaces;
 
-import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
-import com.g2.Model.Game;
-import com.g2.Model.StatisticProgress;
-import org.springframework.core.ParameterizedTypeReference;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
+
+import com.g2.Model.Game;
+import com.g2.Model.StatisticProgress;
 
 @Service
 public class T4Service extends BaseService {
@@ -53,6 +55,11 @@ public class T4Service extends BaseService {
                 Integer.class
         ));
 
+        registerAction("getHashStatisticsProgresses", new ServiceActionDefinition(
+            params -> getHashStatisticsProgresses((int) params[0]),
+            Integer.class
+        ));
+
         registerAction("updateStatisticProgress", new ServiceActionDefinition(
                 params -> updateStatisticProgress((int) params[0], (String) params[1], (float) params[2]),
                 Integer.class, String.class, Float.class));
@@ -63,9 +70,8 @@ public class T4Service extends BaseService {
                 String.class, String.class, String.class, String.class, String.class));
 
         registerAction("EndGame", new ServiceActionDefinition(
-                params -> EndGame((int) params[0], (String) params[1], (String) params[2], (int) params[3],
-                        (Boolean) params[4]),
-                Integer.class, String.class, String.class, Integer.class, Boolean.class));
+                params -> EndGame((int) params[0], (String) params[1], (int) params[2], (Boolean) params[3]),
+                Integer.class, String.class, Integer.class, Boolean.class));
 
         registerAction("CreateRound", new ServiceActionDefinition(
                 params -> CreateRound((int) params[0], (String) params[1], (String) params[2]),
@@ -80,8 +86,8 @@ public class T4Service extends BaseService {
                 String.class, Integer.class, String.class));
 
         registerAction("EndTurn", new ServiceActionDefinition(
-                params -> EndTurn((String) params[0], (String) params[1], (int) params[2]),
-                String.class, String.class, Integer.class));
+                params -> EndTurn((String) params[0], (String) params[1], (String) params[2]),
+                String.class, String.class, String.class));
 
         registerAction("CreateScalata", new ServiceActionDefinition(
                 params -> CreateScalata((String) params[0], (String) params[1], (String) params[2], (String) params[3]),
@@ -110,17 +116,32 @@ public class T4Service extends BaseService {
         return response;
     }
 
+    private Set<StatisticProgress> getHashStatisticsProgresses(int playerID) {
+        Map<String, String> formData = new HashMap<>();
+        formData.put("pid", String.valueOf(playerID));
+        String endpoint = "/phca/" + playerID;
+        // Recupera la risposta come una lista
+        List<StatisticProgress> response = callRestGET( endpoint, 
+                                                        formData, 
+                                                        new ParameterizedTypeReference<List<StatisticProgress>>() {
+                                                       });
+        // Converti la lista in un HashSet per rimuovere eventuali duplicati
+        Set<StatisticProgress> responseSet = new HashSet<>(response);
+        return responseSet;
+    }
+
     private String updateStatisticProgress(int playerID, String statisticID, float progress) {
-        MultiValueMap<String, String> jsonMap = new LinkedMultiValueMap<>();
-        jsonMap.put("playerId", Collections.singletonList(String.valueOf(playerID)));
-        jsonMap.put("statistic", Collections.singletonList(statisticID));
-        jsonMap.put("progress", Collections.singletonList(String.valueOf(progress)));
+        JSONObject obj = new JSONObject();
+        obj.put("playerId", playerID);
+        obj.put("statistic", statisticID);
+        obj.put("progress", progress);
+
         String endpoint = "/phca/" + playerID + "/" + statisticID;
-        String response = callRestPut(endpoint, jsonMap, new HashMap<>(), String.class);
+        String response = callRestPut(endpoint, obj, null, null, String.class);
         return response;
     }
-    
-/*
+
+    /*
     private String updateStatisticProgress(int playerID, String statisticID, float progress) {
         try {
             MultiValueMap<String, String> jsonMap = new LinkedMultiValueMap<>();
@@ -138,9 +159,8 @@ public class T4Service extends BaseService {
             return "errore UPDATESTATISTICPROGRESS";
         }
     }
-*/
-    
-    // usa /robots per ottenere dati 
+     */
+    // usa /robots per ottenere dati
     private String GetRisultati(String className, String robot_type, String difficulty) {
         Map<String, String> formData = new HashMap<>();
         formData.put("testClassId", className); // Nome della classe
@@ -156,6 +176,9 @@ public class T4Service extends BaseService {
         JSONObject obj = new JSONObject();
         obj.put("difficulty", difficulty);
         obj.put("name", name);
+        /*
+         * Stiamo usando descrizione per salvare la modalità di gioco 
+         */
         obj.put("description", description);
         obj.put("startedAt", Time);
         JSONArray playersArray = new JSONArray();
@@ -170,16 +193,45 @@ public class T4Service extends BaseService {
         return jsonObject.getInt("id");
     }
 
-    private String EndGame(int gameid, String username, String closedAt, int Score, Boolean isWinner) {
+    private String EndGame(int gameid, String closedAt, int Score, Boolean isWinner) {
         final String endpoint = "/games/" + String.valueOf(gameid);
-        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
-        formData.add("closedAt", closedAt);
-        formData.add("username", username);
-        formData.add("score", Integer.toString(Score));
-        formData.add("isWinner", isWinner ? "true" : "false");
-        String respose = callRestPost(endpoint, formData, null, String.class);
+        /*
+         * La chiamata sovrascrive perchè è una put, devi ridare tutti i dati 
+            CurrentRound int        `json:"currentRound"`
+            Name         string     `json:"name"`
+            Username     string     `json:"username"`
+            Description  string     `json:"description"`
+            Score        float64    `json:"score"`
+            IsWinner     bool       `json:"isWinner"`
+            StartedAt    *time.Time `json:"startedAt,omitempty"`
+            ClosedAt     *time.Time `json:"closedAt,omitempty"`
+         */
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("closedAt", closedAt);
+        jsonObject.put("score", Score);
+        jsonObject.put("isWinner", isWinner);
+
+        System.out.println(jsonObject);
+        String respose = callRestPut(endpoint, jsonObject, null, null, String.class);
         return respose;
     }
+
+    /*
+    private String EndGame(int gameid, String username, String closedAt, int Score, Boolean isWinner){
+        final String endpoint = "/games/" + String.valueOf(gameid);
+        JSONObject formData = new JSONObject();
+        formData.put("closedAt", closedAt);
+        formData.put("username", username);
+        formData.put("score", Integer.toString(Score));
+        formData.put("isWinner", isWinner ? "true" : "false");
+        try {
+            String respose = callRestPut(endpoint, formData, null, null, String.class);
+            return respose;
+        } catch (Exception e) {
+            throw new IllegalArgumentException("[CreateGame]: " + e.getMessage());
+        }
+    }
+     */
 
     private int CreateRound(int game_id, String ClasseUT, String Time) {
         final String endpoint = "/rounds";
@@ -195,13 +247,16 @@ public class T4Service extends BaseService {
     }
 
     private String EndRound(String Time, int roundId) {
-        // Anche qui non è stato previsto un parametro per la chiamata rest e quindi va
-        // costruito a mano
+        //Anche qui non è stato previsto un parametro per la chiamata rest e quindi va costruito a mano
         final String endpoint = "rounds/" + String.valueOf(roundId);
-        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
-        formData.add("closedAt", Time);
-        String response = callRestPut(endpoint, formData, null, String.class);
-        return response;
+        try {
+            JSONObject formData = new JSONObject();
+            formData.put("closedAt", Time);
+            String response = callRestPut(endpoint, formData, null, null, String.class);
+            return response;
+        } catch (Exception e) {
+            throw new IllegalArgumentException("[EndRound]: " + e.getMessage());
+        }
     }
 
     private String CreateTurn(String Player_id, int Round_id, String Time) {
@@ -216,14 +271,15 @@ public class T4Service extends BaseService {
         return respose;
     }
 
-    private String EndTurn(String user_score, String Time, int turnId) {
+    private String EndTurn(String user_score, String Time, String turnId) {
         // Anche qui non è stato previsto un parametro per la chiamata rest e quindi va
         // costruito a mano
-        final String endpoint = "turns/" + String.valueOf(turnId);
-        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
-        formData.add("scores", user_score);
-        formData.add("closedAt", Time);
-        String response = callRestPut(endpoint, formData, null, String.class);
+        final String endpoint = "turns/" + turnId;
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("TurnID", turnId);
+        jsonObject.put("scores", user_score);
+        jsonObject.put("closedAt", Time);
+        String response = callRestPut(endpoint, jsonObject,null, null, String.class);
         return response;
     }
 
