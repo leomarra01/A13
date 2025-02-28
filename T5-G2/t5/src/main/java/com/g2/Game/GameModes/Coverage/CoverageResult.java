@@ -1,10 +1,10 @@
-package com.g2.Game.GameModes.Compile;
+package com.g2.Game.GameModes.Coverage;
 
 public class CoverageResult {
-    private final int covered;
-    private final int missed;
-    private final double percentage;
-    private final String errorMessage;
+    final private int covered;
+    final private int missed;
+    final private double percentage;
+    final private String errorMessage;
 
     public CoverageResult(int covered, int missed) {
         this.covered = covered;

@@ -32,7 +32,6 @@ import org.springframework.ui.Model;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.g2.Interfaces.ServiceManager;
 
-
 @Service
 public class PageBuilder {
 
@@ -130,14 +129,16 @@ public class PageBuilder {
         Se due componenti restituiscono dati con la stessa chiave, 
         l'ultimo componente che aggiorna la mappa sovrascriverà i dati precedenti.
      */
-    private Map<String, Object> buildModel(){
+    private Map<String, Object> buildModel() {
         Map<String, Object> combinedModel = new HashMap<>();
+
         for (GenericObjectComponent component : ObjectComponents) {
             Map<String, Object> model = component.getModel();
             model.forEach((key, value) -> {
                 if (combinedModel.put(key, value) != null) {
+                    //logger.error("[PAGEBULDER][buildModel] individuate chiavi duplicate: " + key);
                     // Puoi decidere se lanciare un'eccezione o gestire la duplicazione come preferisci
-                    throw new IllegalStateException("[PAGEBULDER][buildModel] individuate chiavi duplicate: " + key);
+                    throw new RuntimeException("[PAGEBULDER][buildModel] individuate chiavi duplicate: " + key);
                 }
             });
         }
@@ -146,7 +147,7 @@ public class PageBuilder {
 
     // Metodo principale flusso per una richiesta di pagina
     // Esegue la logica di ogni componente, poi elabora i dati da inserire nel template
-    public String handlePageRequest(){
+    public String handlePageRequest() {
         String return_page_error = null;
         if (LogicComponents != null && !LogicComponents.isEmpty()) {
             // Esegui la logica di tutti i componenti
@@ -173,7 +174,6 @@ public class PageBuilder {
             setLogicComponents(new AuthComponent(serviceManager, jwt));
         }
     }
-    
     public void SetAuth(){
         if (serviceManager != null) {
             setLogicComponents(new AuthComponent(serviceManager, JWT));

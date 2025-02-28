@@ -1,21 +1,26 @@
 package com.g2.Game.GameDTO;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
+
 
 public class StartGameRequestDTO {
     @JsonProperty("playerId")
     private String playerId;
-    @JsonProperty("typeRobot")
+
+    @JsonAlias({"type_robot", "typeRobot"})
     private String typeRobot;
+
     @JsonProperty("difficulty")
     private String difficulty;
+
     @JsonProperty("mode")
     private String mode;
+
     @JsonProperty("underTestClassName")
     private String underTestClassName;
 
     // Getters e Setters
-
     public String getPlayerId() {
         return playerId;
     }

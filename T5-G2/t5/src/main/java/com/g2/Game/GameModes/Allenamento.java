@@ -1,6 +1,6 @@
 package com.g2.Game.GameModes;
 
-import com.g2.Game.GameModes.Compile.CompileResult;
+import com.g2.Game.GameModes.Coverage.CompileResult;
 import com.g2.Interfaces.ServiceManager;
 
 public class Allenamento extends GameLogic{
@@ -9,6 +9,9 @@ public class Allenamento extends GameLogic{
     private int userScore;
     private int robotScore;
     
+    public Allenamento() {
+    }
+
     public Allenamento(ServiceManager serviceManager, String PlayerID, String ClasseUT,
             String type_robot, String difficulty, String gamemode) {
         super(serviceManager, PlayerID, ClasseUT, type_robot, difficulty, gamemode);

@@ -5,7 +5,7 @@ services:
     build: .
     restart: always
     expose:
-      - 8080
+      - 8080 #mettere expose al posto di ports e 8080 sotto
     networks:
       - global-network
     volumes:

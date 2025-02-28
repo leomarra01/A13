@@ -1,4 +1,4 @@
-package com.g2.Game.GameModes.Compile;
+package com.g2.Game.GameModes.Coverage;
 
 import org.json.JSONObject;
 import org.slf4j.Logger;
@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory;
 import com.g2.Interfaces.ServiceManager;
 
 public class CompileResult {
+
     /*
      * Campi 
      */

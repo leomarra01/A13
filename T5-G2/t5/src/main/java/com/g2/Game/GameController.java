@@ -16,6 +16,10 @@
  */
 package com.g2.Game;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
+import java.util.Map;
+
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,12 +27,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.g2.Game.GameDTO.GameResponseDTO;
 import com.g2.Game.GameDTO.StartGameRequestDTO;
 import com.g2.Game.GameDTO.StartGameResponseDTO;
@@ -36,6 +42,10 @@ import com.g2.Game.GameModes.GameLogic;
 import com.g2.Game.Service.Exceptions.GameAlreadyExistsException;
 import com.g2.Game.Service.Exceptions.GameDontExistsException;
 import com.g2.Game.Service.GameServiceManager;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 
 //Qui introduco tutte le chiamate REST per la logica di gioco/editor
 @CrossOrigin
@@ -57,6 +67,25 @@ public class GameController {
     }
 
 
+
+    // Metodo helper per estrarre userId dal JWT
+    private String getPlayerIdFromJwt(String jwt) {
+        try {
+            logger.info("[JWT] Decodifica del token JWT...");
+            String[] chunks = jwt.split("\\.");
+            if (chunks.length < 2) {
+                logger.error("[JWT] Il token JWT non è valido!");
+                return null;
+            }
+            String payload = new String(java.util.Base64.getDecoder().decode(chunks[1]));
+            org.json.JSONObject jsonObject = new org.json.JSONObject(payload);
+            return jsonObject.optString("userId", null);
+        } catch (Exception e) {
+            logger.error("[JWT] Errore nella decodifica del JWT", e);
+            return null;
+        }
+    }
+
     /*    LATO CLIENT
      *    On load document - check game -> da usare in fetchPrevisusGame
      *    
@@ -70,24 +99,92 @@ public class GameController {
      *  Chiamata che controllo se la partita quindi esisteva già o meno
      *  se non esiste instanzia un nuovo gioco 
      */
+     /**
+     * Endpoint per avviare una partita.
+     * Il client invia nel body tutti i parametri necessari:
+     * - playerId  
+     * - mode  
+     * - underTestClassName  
+     * - type_robot  
+     * - difficulty  
+     *
+     * Il backend crea un nuovo game object per quella modalità, lo inserisce nella sessione e restituisce un DTO con l'ID del game.
+     */
     @PostMapping("/StartGame")
-    public ResponseEntity<StartGameResponseDTO> startGame(@RequestBody StartGameRequestDTO request) {
-        try {
-            // Mappare il DTO nel modello di dominio
-            GameLogic game = gameServiceManager.CreateGameLogic(
-                                            request.getPlayerId(),
-                                            request.getMode(),
-                                            request.getUnderTestClassName(),
-                                            request.getTypeRobot(),
-                                            request.getDifficulty());
+    public ResponseEntity<StartGameResponseDTO> startGame(
+            @RequestBody(required = false) StartGameRequestDTO request,
+            @CookieValue(name = "jwt", required = false) String jwt) {
 
-            // Mappatura del modello di dominio nel DTO di risposta
-            StartGameResponseDTO response = new StartGameResponseDTO(game.getGameID(), "created");
-            return ResponseEntity.ok(response);
+        logger.info("[START_GAME] Richiesta ricevuta per avviare il gioco");
+
+        if (jwt == null || jwt.isEmpty()) {
+            logger.error("[START_GAME] Nessun JWT trovato nella richiesta.");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new StartGameResponseDTO(-1, "JWT missing"));
+        }
+
+        String userId = getPlayerIdFromJwt(jwt);
+        logger.info("[START_GAME] UserID estratto dal JWT: {}", userId);
+
+        if (request == null) {
+            logger.error("[START_GAME] Il body della richiesta è NULL!");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new StartGameResponseDTO(-1, "Request body is missing"));
+        }
+
+        // Log dei parametri inviati
+        logger.info("[START_GAME] Dati ricevuti: playerId={}, typeRobot={}, difficulty={}, mode={}, underTestClassName={}",
+                request.getPlayerId(), request.getTypeRobot(), request.getDifficulty(),
+                request.getMode(), request.getUnderTestClassName());
+
+        String mode = request.getMode();
+        if (mode == null || mode.isEmpty()) {
+            logger.error("[START_GAME] Modalità di gioco non specificata!");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new StartGameResponseDTO(-1, "Invalid request: mode is missing"));
+        }
+
+        // Validazioni specifiche per modalità
+        if (mode.equalsIgnoreCase("Sfida")) {
+            if (request.getPlayerId() == null || request.getPlayerId().isEmpty() ||
+                request.getTypeRobot() == null || request.getTypeRobot().isEmpty() ||
+                request.getDifficulty() == null || request.getDifficulty().isEmpty() ||
+                request.getUnderTestClassName() == null || request.getUnderTestClassName().isEmpty()) {
+
+                logger.error("[START_GAME] Modalità 'Sfida': Uno o più campi obbligatori sono mancanti!");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(new StartGameResponseDTO(-1, "Invalid request: missing fields in Sfida mode"));
+            }
+        } else if (mode.equalsIgnoreCase("Allenamento")) {
+            if (request.getPlayerId() == null || request.getPlayerId().isEmpty() ||
+                request.getUnderTestClassName() == null || request.getUnderTestClassName().isEmpty()) {
+
+                logger.error("[START_GAME] Modalità 'Allenamento': Uno o più campi obbligatori sono mancanti!");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(new StartGameResponseDTO(-1, "Invalid request: missing fields in Allenamento mode"));
+            }
+            request.setTypeRobot("NONE");
+            request.setDifficulty("EASY");
+        }
+
+        try {
+            logger.info("[START_GAME] Creazione della partita per playerId={} in modalità={}", request.getPlayerId(), mode);
+            GameLogic game = gameServiceManager.CreateGameLogic(
+                    request.getPlayerId(),
+                    mode,
+                    request.getUnderTestClassName(),
+                    request.getTypeRobot(),
+                    request.getDifficulty());
+            logger.info("[START_GAME] Partita creata con successo. GameID={}", game.getGameID());
+            return ResponseEntity.ok(new StartGameResponseDTO(game.getGameID(), "created"));
         } catch (GameAlreadyExistsException e) {
-            logger.error("[GAMECONTROLLER][StartGame] " + e.getMessage());
-            StartGameResponseDTO response = new StartGameResponseDTO(-1, "GameAlreadyExistsException");
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+            logger.error("[START_GAME] Errore: la partita esiste già per playerId={} e modalità={}", request.getPlayerId(), mode);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new StartGameResponseDTO(-1, "GameAlreadyExistsException"));
+        } catch (Exception e) {
+            logger.error("[START_GAME] Errore generico durante la creazione della partita!", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new StartGameResponseDTO(-1, "Internal server error"));
         }
     }
 
@@ -102,7 +199,7 @@ public class GameController {
             @RequestParam(value = "testingClassCode", required = false, defaultValue = "") String testingClassCode,
             @RequestParam(value = "playerId") String playerId,
             @RequestParam("mode") String mode,
-            @RequestParam("isGameEnd") boolean isGameEnd) {
+            @RequestParam("isGameEnd") Boolean isGameEnd) {
         try {
             GameResponseDTO response = gameServiceManager.PlayGame(playerId, mode, testingClassCode, isGameEnd);
             return ResponseEntity.ok().body(response);
