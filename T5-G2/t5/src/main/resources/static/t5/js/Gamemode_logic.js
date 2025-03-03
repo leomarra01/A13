@@ -66,10 +66,12 @@ function SetMode(setM) {
 async function fetchPreviousGameData() {
     const playerId = String(parseJwt(getCookie("jwt")).userId);
     try {
-        const response = await fetch(`/session/get?playerId=${playerId}`);
+        // Ora il path è /session/{playerId}
+        const response = await fetch(`/session/${playerId}`);
         const data = await response.json();
         // Assumiamo che il formato sia: { modalita: { Sfida: { gameobject: { … } } } }
         if (data && data.modalita && data.modalita[GetMode()] && data.modalita[GetMode()].gameobject) {
+            console.log("[fetchPreviousGameData] Trovato gameobject per la modalità " + GetMode() + ":", data.modalita[GetMode()].gameobject);
             return data.modalita[GetMode()].gameobject;
         }
         return null;
@@ -82,7 +84,8 @@ async function fetchPreviousGameData() {
 async function saveModalitaToSession() {
     const playerId = String(parseJwt(getCookie("jwt")).userId);
     const currentMode = GetMode();
-    let sessionResponse = await fetch(`/session/get?playerId=${playerId}`);
+    // Recupera la sessione tramite GET /session/{playerId}
+    let sessionResponse = await fetch(`/session/${playerId}`);
     let sessionData = await sessionResponse.json();
 
     let gameObject = sessionData && sessionData.modalita && sessionData.modalita[currentMode]
@@ -94,18 +97,13 @@ async function saveModalitaToSession() {
         return;
     }
 
-    const updatedModalita = {};
-    updatedModalita[currentMode] = {
-        "@class": "com.g2.Session.Sessione$ModalitaWrapper",
-        "gameobject": gameObject,
-        "timestamp": new Date().toISOString()
-    };
-
+    // Per aggiornare la gamemode usiamo il path PUT /session/gamemode/{playerId}?mode={currentMode}
     try {
-        const response = await fetch(`/session/updateModalita?playerId=${playerId}`, {
-            method: "POST",
+        const response = await fetch(`/session/gamemode/${playerId}?mode=${currentMode}`, {
+            method: "PUT",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(updatedModalita)
+            // Invia direttamente il gameobject (la logica nel controller aggiorna il timestamp)
+            body: JSON.stringify(gameObject)
         });
         const result = await response.text();
         console.log("Modalità aggiornata con successo:", result);
@@ -117,9 +115,9 @@ async function saveModalitaToSession() {
 async function deleteModalita(mode) {
     const playerId = String(parseJwt(getCookie("jwt")).userId);
     try {
-        const response = await fetch(`/session/deleteModalita?playerId=${playerId}&mode=${mode}`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" }
+        // Ora il path è DELETE /session/gamemode/{playerId}?mode={mode}
+        const response = await fetch(`/session/gamemode/${playerId}?mode=${mode}`, {
+            method: "DELETE"
         });
         const result = await response.text();
         console.log("Modalità eliminata:", result);
@@ -172,7 +170,7 @@ async function startGame() {
     }
 }
 
-//aggiungere un flush localstorage
+// Aggiungere un flush del localStorage se necessario
 
 // ------------------------------
 // EVENTI DELL'INTERFACCIA

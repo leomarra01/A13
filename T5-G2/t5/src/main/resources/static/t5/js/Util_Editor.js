@@ -19,8 +19,7 @@
    Funzioni di utilità per l'editor.
 */
 
-
-//inserire flush local storage
+// Inserire qui eventuale flush del localStorage
 
 // === FUNZIONI PER COSTRUIRE L'URL E IL REPORT ===
 function createApiUrl(formData, orderTurno) {
@@ -76,8 +75,7 @@ const you_win = `
 __     ______  _    _  __          _______ _   _ 
 \\ \\   / / __ \\| |  | | \\ \\        / /_   _| \\ | |
  \\ \\_/ / |  | | |  | |  \\ \\  /\\  / /  | | |  \\| |
-  \\   /| |  | | |  | |   \\ \\/  \\/ /   | | | . \` |
-   | | | |__| | |__| |    \\  /\\  /   _| |_| |\\  |
+  \\   /| |  | | |  | |   \\ \\/  \\/ /   _| |_| |\\  |
    |_|  \\____/ \\____/      \\/  \\/   |_____|_| \\_|
 `;
 
@@ -232,7 +230,7 @@ function GetMode() {
 async function fetchPreviousGameData() {
     const playerId = String(parseJwt(getCookie("jwt")).userId);
     try {
-        const response = await fetch(`http://localhost:8080/session/get?playerId=${playerId}`);
+        const response = await fetch(`/session/${playerId}`);
         const data = await response.json();
         if (data && data.modalita && data.modalita[GetMode()] && data.modalita[GetMode()].gameobject) {
             console.log("[fetchPreviousGameData] Trovato gameobject per la modalità " + GetMode() + ":", data.modalita[GetMode()].gameobject);
@@ -245,7 +243,6 @@ async function fetchPreviousGameData() {
     }
 }
 
-// === FUNZIONE getFormData CON DEBUG SUL CODICE DELL'EDITOR ===
 async function getFormData() {
     const formData = new FormData();
     const gameObject = await fetchPreviousGameData();
@@ -268,7 +265,6 @@ async function getFormData() {
     console.log("[getFormData] Prime 100 caratteri:", codeValue.substring(0, 100));
     if (!codeValue || codeValue.trim() === "" || codeValue.startsWith("null")) {
         console.error("[getFormData] Il codice dell'editor NON è valido. Valore ricevuto:", codeValue);
-        // Rimuoviamo il prefisso "null" se presente
         codeValue = codeValue.replace(/^null/, "");
         console.error("[getFormData] Valore dopo aver rimosso 'null':", codeValue);
         if (!codeValue.trim()) {
@@ -280,7 +276,6 @@ async function getFormData() {
     return formData;
 }
 
-// === FUNZIONE parseMavenOutput (per il debug) ===
 function parseMavenOutput(output) {
     console.log("[parseMavenOutput] Output Maven completo:", output);
     const lines = output.split("\n");
@@ -306,7 +301,6 @@ function parseMavenOutput(output) {
     };
 }
 
-// === FUNZIONE AJAX ===
 async function ajaxRequest(url, method = "POST", data = null, isJson = true, dataType = "json") {
     try {
         let processedData, contentType, processData;
@@ -338,7 +332,6 @@ async function ajaxRequest(url, method = "POST", data = null, isJson = true, dat
     }
 }
 
-// === FUNZIONI DI SUPPORTO PER LO STATO E IL LOADING ===
 function toggleLoading(showSpinner, divId, buttonId) {
     const divElement = document.getElementById(divId);
     if (!divElement) {
