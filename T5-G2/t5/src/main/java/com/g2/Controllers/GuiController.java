@@ -58,9 +58,6 @@ public class GuiController {
     private final SessionService sessionService;
 
     @Autowired
-    private AchievementService achievementService;
-
-    @Autowired
     public GuiController(ServiceManager serviceManager, LocaleResolver localeResolver, SessionService sessionService) {
         this.serviceManager = serviceManager;
         this.localeResolver = localeResolver;
@@ -82,33 +79,13 @@ public class GuiController {
         return ResponseEntity.ok().build();
     }
 
-    // Metodo helper per estrarre il playerId dal JWT
-    private String getPlayerIdFromJwt(String jwt) {
-        try {
-            System.out.println("[JWT] Decodifica del token JWT...");
-            String[] chunks = jwt.split("\\.");
-            if (chunks.length < 2) {
-                System.err.println("[JWT] Il token JWT non è valido!");
-                return null;
-            }
-            String payload = new String(Base64.getDecoder().decode(chunks[1]), StandardCharsets.UTF_8);
-            JSONObject jsonObject = new JSONObject(payload);
-            return jsonObject.optString("userId", null);
-        } catch (Exception e) {
-            System.err.println("[JWT] Errore nella decodifica del JWT");
-            e.printStackTrace();
-            return null;
-        }
-    }
-
     @GetMapping("/main")
     public String GUIController(Model model, @CookieValue(name = "jwt", required = false) String jwt) {
         PageBuilder main = new PageBuilder(serviceManager, "main", model, jwt);
         main.SetAuth();
-        String userId = main.getUserId();
-        String sessionKey = sessionService.getExistingSessionKeyForPlayer(userId);
+        String sessionKey = sessionService.getExistingSessionKeyForPlayer(main.getUserId());
         if (sessionKey == null) {
-            sessionService.createSession(userId, SessionService.DEFAULT_SESSION_TTL);
+            sessionService.createSession(main.getUserId(), SessionService.DEFAULT_SESSION_TTL);
         }
         return main.handlePageRequest();
     }
@@ -149,13 +126,14 @@ public class GuiController {
             @CookieValue(name = "jwt", required = false) String jwt,
             @RequestParam(value = "ClassUT", required = false) String ClassUT) {
 
-        PageBuilder editor = new PageBuilder(serviceManager, "editor", model);
-        // Se la sessione contiene almeno una modalità, prosegui normalmente con la costruzione della pagina editor.
-        String playerId = editor.getUserId();
-        if (playerId == null) {
-            return "redirect:/main";
-        }
-        String sessionKey = sessionService.getExistingSessionKeyForPlayer(playerId);
+        PageBuilder editor = new PageBuilder(serviceManager, "editor", model, jwt);
+        editor.setAuth();
+        /*
+        *   Se la sessione contiene almeno una modalità, 
+        *    prosegui normalmente con la costruzione 
+        *    della pagina editor.
+        */ 
+        String sessionKey = sessionService.getExistingSessionKeyForPlayer(editor.getUserId(););
         Sessione sessione = sessionService.getSession(sessionKey);
         if (sessione == null
             || //Se non esiste la sessione 
