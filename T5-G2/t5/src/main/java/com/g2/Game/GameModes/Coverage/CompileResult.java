@@ -1,4 +1,4 @@
-package com.g2.Game.GameModes.Coverage;
+package com.g2.Game.GameModes.Compile;
 
 import org.json.JSONObject;
 import org.slf4j.Logger;

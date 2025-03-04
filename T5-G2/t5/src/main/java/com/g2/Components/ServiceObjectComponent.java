@@ -17,6 +17,7 @@
 
 package com.g2.Components;
 
+import java.util.Collections;
 import java.util.Map;
 
 import com.g2.Interfaces.ServiceManager;
@@ -80,8 +81,7 @@ public class ServiceObjectComponent extends GenericObjectComponent {
             return this.Model;
         } catch (Exception e) {
             // Gestione dell'eccezione, ad esempio log dell'errore
-            System.err.println("Errore durante il recupero dell'oggetto dal servizio: " + e.getMessage());
-            return null;
+            return Collections.emptyMap();
         }
     }
 

@@ -3,6 +3,7 @@ import java.util.Map;
 
 import org.springframework.stereotype.Component;
 
+import com.g2.Game.GameFactory.ModesFactories.GameFactoryFunction;
 import com.g2.Game.GameModes.GameLogic;
 import com.g2.Interfaces.ServiceManager;
 

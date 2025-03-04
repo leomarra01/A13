@@ -17,16 +17,11 @@
 package com.g2.Controllers;
 
 import java.nio.charset.StandardCharsets;
-import java.time.LocalDate;
-import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
-import java.util.Optional;
 
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,23 +35,15 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.LocaleResolver;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.g2.Components.GenericObjectComponent;
 import com.g2.Components.PageBuilder;
 import com.g2.Components.ServiceObjectComponent;
 import com.g2.Components.VariableValidationLogicComponent;
 import com.g2.Interfaces.ServiceManager;
-import com.g2.Model.AchievementProgress;
 import com.g2.Model.ClassUT;
-import com.g2.Model.Game;
-import com.g2.Model.ScalataGiocata;
-import com.g2.Model.User;
 import com.g2.Service.AchievementService;
 import com.g2.Session.SessionService;
 import com.g2.Session.Sessione;
-import com.g2.t5.GameDataWriter;
-import com.g2.t5.ScalataDataWriter;
 
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -69,7 +56,7 @@ public class GuiController {
     private final ServiceManager serviceManager;
     private final LocaleResolver localeResolver;
     private final SessionService sessionService;
-    
+
     @Autowired
     private AchievementService achievementService;
 
@@ -86,11 +73,12 @@ public class GuiController {
             HttpServletRequest request,
             HttpServletResponse response) {
         Cookie cookie = new Cookie("lang", lang);
-        cookie.setMaxAge(3600); // 1 ora
-        cookie.setPath("/");
-        response.addCookie(cookie);
-        Locale locale = new Locale(lang);
+        cookie.setMaxAge(3600); // Imposta la durata del cookie a 1 ora
+        cookie.setPath("/"); // Imposta il percorso per il cookie
+        response.addCookie(cookie); // Aggiungi il cookie alla risposta
+        Locale locale = Locale.forLanguageTag(lang);
         localeResolver.setLocale(request, response, locale);
+        // Restituisce una risposta vuota con codice di stato 200 OK
         return ResponseEntity.ok().build();
     }
 
@@ -115,14 +103,12 @@ public class GuiController {
 
     @GetMapping("/main")
     public String GUIController(Model model, @CookieValue(name = "jwt", required = false) String jwt) {
-        String userId = getPlayerIdFromJwt(jwt);
         PageBuilder main = new PageBuilder(serviceManager, "main", model, jwt);
         main.SetAuth();
-        if (userId != null && !userId.isEmpty()) {
-            String sessionKey = sessionService.getExistingSessionKeyForPlayer(userId);
-            if (sessionKey == null) {
-                sessionService.createSession(userId, SessionService.DEFAULT_SESSION_TTL);
-            }
+        String userId = main.getUserId();
+        String sessionKey = sessionService.getExistingSessionKeyForPlayer(userId);
+        if (sessionKey == null) {
+            sessionService.createSession(userId, SessionService.DEFAULT_SESSION_TTL);
         }
         return main.handlePageRequest();
     }
@@ -160,23 +146,25 @@ public class GuiController {
     // altrimenti, l'utente viene reindirizzato a /main.
     @GetMapping("/editor")
     public String editorPage(Model model,
-                             @CookieValue(name = "jwt", required = false) String jwt,
-                             @RequestParam(value = "ClassUT", required = false) String ClassUT) {
-        String playerId = getPlayerIdFromJwt(jwt);
+            @CookieValue(name = "jwt", required = false) String jwt,
+            @RequestParam(value = "ClassUT", required = false) String ClassUT) {
+
+        PageBuilder editor = new PageBuilder(serviceManager, "editor", model);
+        // Se la sessione contiene almeno una modalità, prosegui normalmente con la costruzione della pagina editor.
+        String playerId = editor.getUserId();
         if (playerId == null) {
             return "redirect:/main";
         }
         String sessionKey = sessionService.getExistingSessionKeyForPlayer(playerId);
-        if (sessionKey == null) {
-            return "redirect:/main";
-        }
         Sessione sessione = sessionService.getSession(sessionKey);
-        if (sessione == null || sessione.getModalita() == null || sessione.getModalita().isEmpty()) {
+        if (sessione == null
+            || //Se non esiste la sessione 
+            sessione.getModalita() == null
+            || //se esiste, ma l'utente non ha impostato un gioco 
+            sessione.getModalita().isEmpty()) {
             return "redirect:/main";
         }
-        
-        // Se la sessione contiene almeno una modalità, prosegui normalmente con la costruzione della pagina editor.
-        PageBuilder editor = new PageBuilder(serviceManager, "editor", model);
+
         VariableValidationLogicComponent valida = new VariableValidationLogicComponent(ClassUT);
         valida.setCheckNull();
         @SuppressWarnings("unchecked")
@@ -204,11 +192,11 @@ public class GuiController {
         leaderboard.SetAuth(jwt);
         return leaderboard.handlePageRequest();
     }
-
+    /* 
     @PostMapping("/save-scalata")
     public ResponseEntity<String> saveScalata(@RequestParam("playerID") int playerID,
-                                               @RequestParam("scalataName") String scalataName,
-                                               HttpServletRequest request) {
+            @RequestParam("scalataName") String scalataName,
+            HttpServletRequest request) {
         if (!request.getHeader("X-UserID").equals(String.valueOf(playerID))) {
             System.out.println("(/save-scalata)[T5] Player non autorizzato.");
             return ResponseEntity.badRequest().body("Unauthorized");
@@ -233,16 +221,16 @@ public class GuiController {
             return ResponseEntity.ok(ids.toString());
         }
     }
-
+   
     @PostMapping("/save-data")
     public ResponseEntity<String> saveGame(@RequestParam("playerId") int playerId,
-                                             @RequestParam("robot") String robot,
-                                             @RequestParam("classe") String classe,
-                                             @RequestParam("difficulty") String difficulty,
-                                             @RequestParam("gamemode") String gamemode,
-                                             @RequestParam("username") String username,
-                                             @RequestParam("selectedScalata") Optional<Integer> selectedScalata,
-                                             HttpServletRequest request) {
+            @RequestParam("robot") String robot,
+            @RequestParam("classe") String classe,
+            @RequestParam("difficulty") String difficulty,
+            @RequestParam("gamemode") String gamemode,
+            @RequestParam("username") String username,
+            @RequestParam("selectedScalata") Optional<Integer> selectedScalata,
+            HttpServletRequest request) {
         if (!request.getHeader("X-UserID").equals(String.valueOf(playerId))) {
             return ResponseEntity.badRequest().body("Unauthorized");
         }
@@ -285,4 +273,5 @@ public class GuiController {
         main.SetAuth(jwt);
         return main.handlePageRequest();
     }
+    */
 }
