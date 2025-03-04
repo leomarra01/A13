@@ -15,15 +15,11 @@
  *   limitations under the License.
  */
 package com.g2.Controllers;
-
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Base64;
 import java.util.List;
 import java.util.Locale;
 
-import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -126,13 +122,13 @@ public class GuiController {
             @RequestParam(value = "ClassUT", required = false) String ClassUT) {
 
         PageBuilder editor = new PageBuilder(serviceManager, "editor", model, jwt);
-        editor.setAuth();
+        editor.SetAuth();
         /*
         *   Se la sessione contiene almeno una modalità, 
         *    prosegui normalmente con la costruzione 
         *    della pagina editor.
         */ 
-        String sessionKey = sessionService.getExistingSessionKeyForPlayer(editor.getUserId(););
+        String sessionKey = sessionService.getExistingSessionKeyForPlayer(editor.getUserId());
         Sessione sessione = sessionService.getSession(sessionKey);
         if (sessione == null
             || //Se non esiste la sessione 
