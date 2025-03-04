@@ -120,6 +120,3 @@ var perc_robot = "0"; // percentuale di copertura del robot scelto
 var userScore = 0;
 var locGiocatore = 0;
 var currentDate = new Date();
-
-
-// aggiungere funzione statica che al caricamento del documento riempie le variabili con la mode e la class under test name

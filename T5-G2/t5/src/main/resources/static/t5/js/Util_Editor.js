@@ -19,55 +19,61 @@
    Funzioni di utilità per l'editor.
 */
 
-// Inserire qui eventuale flush del localStorage
-
 // === FUNZIONI PER COSTRUIRE L'URL E IL REPORT ===
 function createApiUrl(formData, orderTurno) {
-    const className = formData.get("underTestClassName") || formData.get("className");
-    const playerId = formData.get("playerId");
-    const gameId = formData.get("gameId") || "defaultGameId";
-    const roundId = formData.get("roundId") || "defaultRoundId";
-
-    const classePath = `VolumeT8/FolderTreeEvo/${className}/${className}SourceCode/${className}`;
-    const testPath = generaPercorsoTest(orderTurno, formData);
-    const apiUrl = `/api/${classePath}+${testPath}+/app+${playerId}`;
-    console.log("[createApiUrl] URL generato:", apiUrl);
-    return apiUrl;
+	const className = formData.get("className");
+	const underTestClassName = formData.get("underTestClassName");
+	const playerId = formData.get("playerId");
+	// Costruisce il percorso per la classe
+	const classePath = `VolumeT8/FolderTreeEvo/${className}/${className}SourceCode/${underTestClassName}`;
+	// Ottiene il percorso del test generato
+	const testPath = generaPercorsoTest(orderTurno, formData);
+	// Costruisce l'URL dell'API
+	const apiUrl = `/api/${classePath}+${testPath}+/app+${playerId}`;
+	return apiUrl;
 }
 
+// Funzione per generare il percorso del test
 function generaPercorsoTest(orderTurno, formData) {
-    let modalita = localStorage.getItem("modalita");
-    const playerId = formData.get("playerId");
-    const gameId = formData.get("gameId");
-    const roundId = formData.get("roundId");
-    const className = formData.get("underTestClassName") || formData.get("className");
+	let modalita = localStorage.getItem("modalita");
+	const playerId = formData.get("playerId");
+	const gameId = formData.get("gameId");
+	const roundId = formData.get("roundId");
+	const classeLocal = formData.get("className");
 
-    // Se modalità Allenamento, forziamo "Sfida", altrimenti usiamo GetMode()
-    modalita = (modalita === "Allenamento") ? "Sfida" : GetMode();
+	modalita = (modalita === "Allenamento") ? "Sfida" : modalita;
+	
+	// Verifica la modalità e costruisce il percorso appropriato
+	if (modalita === "Scalata" || modalita === "Sfida") {
+		const scalataPart =
+			modalita === "Scalata"
+				? `/${localStorage.getItem("SelectedScalata")}${localStorage.getItem(
+						"scalataId"
+				  )}`
+				: "";
 
-    if (modalita === "Scalata" || modalita === "Sfida") {
-        const scalataPart = (modalita === "Scalata")
-            ? `/${localStorage.getItem("SelectedScalata")}${localStorage.getItem("scalataId")}`
-            : "";
-        return `/VolumeT8/FolderTreeEvo/StudentLogin/Player${playerId}/${modalita}${scalataPart}/${className}/Game${gameId}/Round${roundId}/Turn${orderTurno}/TestReport`;
-    } else {
-        console.error("Errore: modalità non trovata");
-        window.location.href = "/main";
-        return null;
-    }
+		return `/VolumeT8/FolderTreeEvo/StudentLogin/Player${playerId}/${modalita}${scalataPart}/${classeLocal}/Game${gameId}/Round${roundId}/Turn${orderTurno}/TestReport`;
+	} else {
+		console.error("Errore: modalità non trovata");
+		window.location.href = "/main";
+		return null;
+	}
 }
 
-// === FUNZIONI PER ESTRARE IL REPORT CSV ===
+// Funzione per estrarre la terza colonna di un CSV
 function extractThirdColumn(csvContent) {
-    const rows = csvContent.split("\n");
-    const thirdColumnValues = [];
-    rows.slice(1).forEach(row => {
-        const cells = row.split(",");
-        if (cells.length >= 3) {
-            thirdColumnValues.push(cells[2]);
-        }
-    });
-    return thirdColumnValues;
+	const rows = csvContent.split("\n"); // Divide le righe
+	const thirdColumnValues = [];
+
+	// Inizia il ciclo dalla seconda riga (indice 1)
+	rows.slice(1).forEach((row) => {
+		const cells = row.split(","); // Divide le celle
+		if (cells.length >= 3) {
+			thirdColumnValues.push(cells[2]); // Aggiunge la terza colonna
+		}
+	});
+
+	return thirdColumnValues;
 }
 
 // === FUNZIONI PER GENERARE IL TESTO DI OUTPUT ===
@@ -75,7 +81,8 @@ const you_win = `
 __     ______  _    _  __          _______ _   _ 
 \\ \\   / / __ \\| |  | | \\ \\        / /_   _| \\ | |
  \\ \\_/ / |  | | |  | |  \\ \\  /\\  / /  | | |  \\| |
-  \\   /| |  | | |  | |   \\ \\/  \\/ /   _| |_| |\\  |
+  \\   /| |  | | |  | |   \\ \\/  \\/ /   | | | . \` |
+   | | | |__| | |__| |    \\  /\\  /   _| |_| |\\  |
    |_|  \\____/ \\____/      \\/  \\/   |_____|_| \\_|
 `;
 
@@ -88,21 +95,23 @@ __     ______  _    _   _      ____   _____ ______
    |_|  \\____/ \\____/  |______\\____/|_____/|______|
 `;
 
-const errorText = `
+const error = `
 ______ _____  _____   ____   _____  
-|  ____|  __ \\|  __ \\ / __ \\ / ____| 
+|  ____|  __ \|  __ \ / __ \ / ____| 
 | |__  | |__) | |__) | |  | | (___   
-|  __| |  _  /|  _  /| |  | |\\___ \\  
-| |____| | \\ \\| | \\ \\| |__| |____) | 
-|______|_|  \\_\\_|  \\_\\____/|_____/
+|  __| |  _  /|  _  /| |  | |\___ \  
+| |____| | \ \| | \ \| |__| |____) | 
+|______|_|  \_\_|  \_\\____/|_____/  
 `;
 
-function getConsoleTextCoverage(valori_csv, gameScore, coverageDetails) {
-    const lineCoveragePercentage = (coverageDetails.line.covered / (coverageDetails.line.covered + coverageDetails.line.missed)) * 100;
-    const branchCoveragePercentage = (coverageDetails.branch.covered / (coverageDetails.branch.covered + coverageDetails.branch.missed)) * 100;
-    const instructionCoveragePercentage = (coverageDetails.instruction.covered / (coverageDetails.instruction.covered + coverageDetails.instruction.missed)) * 100;
 
-    const consoleText =
+function getConsoleTextCoverage(valori_csv, gameScore, coverageDetails) {
+
+	let lineCoveragePercentage = (coverageDetails.line.covered / (coverageDetails.line.covered + coverageDetails.line.missed)) * 100;
+	let BranchCoveragePercentage = (coverageDetails.branch.covered / (coverageDetails.branch.covered + coverageDetails.branch.missed)) * 100;
+	let instructionCoveragePercentage = (coverageDetails.instruction.covered / (coverageDetails.instruction.covered + coverageDetails.instruction.missed)) * 100;
+
+	var consoleText = 
 `============================== Results ===============================
 Il tuo punteggio: ${gameScore}pt
 ============================== JaCoCo ===============================
@@ -110,7 +119,7 @@ Line Coverage COV%:  ${lineCoveragePercentage}% LOC
 covered: ${coverageDetails.line.covered}  
 missed: ${coverageDetails.line.missed}
 ----------------------------------------------------------------------
-Branch Coverage COV%:  ${branchCoveragePercentage}% LOC
+Branch Coverage COV%:  ${BranchCoveragePercentage}% LOC
 covered: ${coverageDetails.branch.covered} 
 missed: ${coverageDetails.branch.missed}
 ----------------------------------------------------------------------
@@ -118,45 +127,47 @@ Instruction Coverage COV%:  ${instructionCoveragePercentage}% LOC
 covered: ${coverageDetails.instruction.covered} 
 missed: ${coverageDetails.instruction.missed}
 ============================== EvoSuite ===============================
-la tua Coverage:  ${valori_csv[0] * 100}% LOC
+la tua Coverage:  ${valori_csv[0]*100}% LOC
 ----------------------------------------------------------------------
-Il tuo punteggio EvoSuite: ${valori_csv[1] * 100}% Branch
+Il tuo punteggio EvoSuite: ${valori_csv[1]*100}% Branch
 ----------------------------------------------------------------------
-Il tuo punteggio EvoSuite: ${valori_csv[2] * 100}% Exception
+Il tuo punteggio EvoSuite: ${valori_csv[2]*100}% Exception
 ----------------------------------------------------------------------
-Il tuo punteggio EvoSuite: ${valori_csv[3] * 100}% WeakMutation
+Il tuo punteggio EvoSuite: ${valori_csv[3]*100}% WeakMutation
 ----------------------------------------------------------------------
-Il tuo punteggio EvoSuite: ${valori_csv[4] * 100}% Output
+Il tuo punteggio EvoSuite: ${valori_csv[4]*100}% Output
 ----------------------------------------------------------------------
-Il tuo punteggio EvoSuite: ${valori_csv[5] * 100}% Method
+Il tuo punteggio EvoSuite: ${valori_csv[5]*100}% Method
 ----------------------------------------------------------------------
-Il tuo punteggio EvoSuite: ${valori_csv[6] * 100}% MethodNoException
+Il tuo punteggio EvoSuite: ${valori_csv[6]*100}% MethodNoException
 ----------------------------------------------------------------------
-Il tuo punteggio EvoSuite: ${valori_csv[7] * 100}% CBranch
-======================================================================
-`;
-    return consoleText;
+Il tuo punteggio EvoSuite: ${valori_csv[7]*100}% CBranch
+======================================================================`;
+
+	// Restituisce il testo generato
+	return consoleText;
 }
 
 function getConsoleTextRun(valori_csv, coverageDetails, punteggioRobot, gameScore, isWinner) {
-    const lineCoveragePercentage = (coverageDetails.line.covered / (coverageDetails.line.covered + coverageDetails.line.missed)) * 100;
-    const branchCoveragePercentage = (coverageDetails.branch.covered / (coverageDetails.branch.covered + coverageDetails.branch.missed)) * 100;
-    const instructionCoveragePercentage = (coverageDetails.instruction.covered / (coverageDetails.instruction.covered + coverageDetails.instruction.missed)) * 100;
-
-    const header = isWinner ? you_win : you_lose;
-    const consoleText =
-`=====================================================================
-${header}
-============================== Results ===============================
-Il tuo punteggio: ${gameScore}pt
+	let lineCoveragePercentage = (coverageDetails.line.covered / (coverageDetails.line.covered + coverageDetails.line.missed)) * 100;
+	let BranchCoveragePercentage = (coverageDetails.branch.covered / (coverageDetails.branch.covered + coverageDetails.branch.missed)) * 100;
+	let instructionCoveragePercentage = (coverageDetails.instruction.covered / (coverageDetails.instruction.covered + coverageDetails.instruction.missed)) * 100;
+	
+	var consoleText2 = (isWinner) ? you_win : you_lose;
+	consoleText =
+`===================================================================== \n` +
+		consoleText2 +
+		"\n" +
+`============================== Results ===============================
+Il tuo punteggio:${gameScore}pt
 ----------------------------------------------------------------------
-La coverage del robot: ${punteggioRobot}% LOC
+La coverage del robot:${punteggioRobot}% LOC
 ============================== JaCoCo ===============================
 Line Coverage COV%:  ${lineCoveragePercentage}% LOC
 covered: ${coverageDetails.line.covered}  
 missed: ${coverageDetails.line.missed}
 ----------------------------------------------------------------------
-Branch Coverage COV%:  ${branchCoveragePercentage}% LOC
+Branch Coverage COV%:  ${BranchCoveragePercentage}% LOC
 covered: ${coverageDetails.branch.covered} 
 missed: ${coverageDetails.branch.missed}
 ----------------------------------------------------------------------
@@ -164,77 +175,49 @@ Instruction Coverage COV%:  ${instructionCoveragePercentage}% LOC
 covered: ${coverageDetails.instruction.covered} 
 missed: ${coverageDetails.instruction.missed}
 ============================== EvoSuite ===============================
-la tua Coverage:  ${valori_csv[0] * 100}% LOC
+la tua Coverage:  ${valori_csv[0]*100}% LOC
 ----------------------------------------------------------------------
-Il tuo punteggio EvoSuite: ${valori_csv[1] * 100}% Branch
+Il tuo punteggio EvoSuite: ${valori_csv[1]*100}% Branch
 ----------------------------------------------------------------------
-Il tuo punteggio EvoSuite: ${valori_csv[2] * 100}% Exception
+Il tuo punteggio EvoSuite: ${valori_csv[2]*100}% Exception
 ----------------------------------------------------------------------
-Il tuo punteggio EvoSuite: ${valori_csv[3] * 100}% WeakMutation
+Il tuo punteggio EvoSuite: ${valori_csv[3]*100}% WeakMutation
 ----------------------------------------------------------------------
-Il tuo punteggio EvoSuite: ${valori_csv[4] * 100}% Output
+Il tuo punteggio EvoSuite: ${valori_csv[4]*100}% Output
 ----------------------------------------------------------------------
-Il tuo punteggio EvoSuite: ${valori_csv[5] * 100}% Method
+Il tuo punteggio EvoSuite: ${valori_csv[5]*100}% Method
 ----------------------------------------------------------------------
-Il tuo punteggio EvoSuite: ${valori_csv[6] * 100}% MethodNoException
+Il tuo punteggio EvoSuite: ${valori_csv[6]*100}% MethodNoException
 ----------------------------------------------------------------------
-Il tuo punteggio EvoSuite: ${valori_csv[7] * 100}% CBranch
-=====================================================================
-`;
-    return consoleText;
+Il tuo punteggio EvoSuite: ${valori_csv[7]*100}% CBranch
+======================================================================`;
+
+	// Restituisce il testo generato
+	return consoleText;
 }
 
-function getConsoleTextError() {
-    return `=====================================================================
-${errorText}
-============================== Results ===============================
-Ci sono stati errori di compilazione, controlla la console!
-`;
-}
-
-// === FUNZIONI DI UTILITÀ PER L'EDITOR E LA SESSIONE ===
-
-function replaceText(text, replacements) {
-    return text.replace(/\b(TestClasse|username|userID|date)\b/g, match => replacements[match] || match);
-}
-
-function SetInitialEditor(replacements) {
-    const text = editor_utente.getValue();
-    console.log("[SetInitialEditor] Testo originale:", text);
-    const newContent = replaceText(text, replacements);
-    console.log("[SetInitialEditor] Testo aggiornato:", newContent);
-    editor_utente.setValue(newContent);
-}
-
-function getParameterByName(name) {
-    const url = window.location.href;
-    name = name.replace(/[\[\]]/g, "\\$&");
-    const regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)");
-    const results = regex.exec(url);
-    if (!results) return null;
-    if (!results[2]) return "";
-    return decodeURIComponent(results[2].replace(/\+/g, " "));
-}
-
-function GetMode() {
-    const mode = getParameterByName("mode");
-    if (mode) {
-        const trimmed = mode.replace(/[^a-zA-Z0-9\s]/g, " ").trim();
-        return (trimmed.toLowerCase() === "sfida") ? "Sfida" : trimmed;
-    }
-    return "Sfida";
+function getConsoleTextError(){
+	return  `===================================================================== \n` 
+			+ error +  "\n" +
+			`============================== Results =============================== \n
+			Ci sono stati errori di compilazione, controlla la console !`;
 }
 
 // === FUNZIONI PER LA SESSIONE ===
-
 async function fetchPreviousGameData() {
     const playerId = String(parseJwt(getCookie("jwt")).userId);
+    const current_mode = GetMode();
     try {
         const response = await fetch(`/session/${playerId}`);
         const data = await response.json();
-        if (data && data.modalita && data.modalita[GetMode()] && data.modalita[GetMode()].gameobject) {
-            console.log("[fetchPreviousGameData] Trovato gameobject per la modalità " + GetMode() + ":", data.modalita[GetMode()].gameobject);
-            return data.modalita[GetMode()].gameobject;
+        if (
+            data && 
+            data.modalita &&
+            data.modalita[current_mode] && 
+            data.modalita[current_mode].gameobject) 
+        {
+            console.log("[fetchPreviousGameData] Trovato gameobject per la modalità " + current_mode + ":", data.modalita[current_mode].gameobject);
+            return data.modalita[current_mode].gameobject;
         }
         return null;
     } catch (error) {
@@ -244,61 +227,48 @@ async function fetchPreviousGameData() {
 }
 
 async function getFormData() {
-    const formData = new FormData();
+	const formData = new FormData();
     const gameObject = await fetchPreviousGameData();
     if (gameObject) {
         console.log("[getFormData] Recuperato game object dalla sessione:", gameObject);
         formData.append("playerId", gameObject.player_id);
-        formData.append("mode", (gameObject.mode.toLowerCase() === "sfida") ? "Sfida" : gameObject.mode);
+        formData.append("mode", gameObject.mode.toLowerCase());
         formData.append("underTestClassName", gameObject.class_ut);
         if (gameObject.game_id) formData.append("gameId", gameObject.game_id);
         if (gameObject.round_id) formData.append("roundId", gameObject.round_id);
+        formData.append("testingClassCode", editor_utente.getValue());
     } else {
-        console.warn("[getFormData] Nessun game object trovato in sessione; uso fallback da localStorage.");
-        formData.append("playerId", String(parseJwt(getCookie("jwt")).userId));
-        formData.append("mode", "Sfida");
-        formData.append("underTestClassName", localStorage.getItem("underTestClassName"));
+        console.warn("[getFormData] Nessun game object trovato in sessione;");
     }
-    let codeValue = editor_utente.getValue();
-    console.log("[getFormData] Valore originale dell'editor:", codeValue);
-    console.log("[getFormData] Lunghezza codice editor:", codeValue.length);
-    console.log("[getFormData] Prime 100 caratteri:", codeValue.substring(0, 100));
-    if (!codeValue || codeValue.trim() === "" || codeValue.startsWith("null")) {
-        console.error("[getFormData] Il codice dell'editor NON è valido. Valore ricevuto:", codeValue);
-        codeValue = codeValue.replace(/^null/, "");
-        console.error("[getFormData] Valore dopo aver rimosso 'null':", codeValue);
-        if (!codeValue.trim()) {
-            console.error("[getFormData] Il codice risultante è vuoto dopo aver rimosso 'null'.");
-        }
-    }
-    formData.append("testingClassCode", codeValue);
-    console.log("[getFormData] FormData contenuto:", Object.fromEntries(formData.entries()));
-    return formData;
+
+	return formData;
 }
 
+// Funzione per analizzare l'output di Maven
 function parseMavenOutput(output) {
-    console.log("[parseMavenOutput] Output Maven completo:", output);
-    const lines = output.split("\n");
-    let buildStatus = "UNKNOWN";
-    lines.forEach((line, index) => {
-        if (line.includes("TestClasse")) {
-            console.warn(`[parseMavenOutput] Riga ${index} contenente "TestClasse":`, line);
+    const lines = output.split('\n');
+    let results = {
+        errors: 0,
+        warnings: 0
+    };
+
+    lines.forEach(line => {
+        // Regex per contare avvisi
+        const warningMatch = line.match(/^\[INFO\] (\d+) warning/);
+        if (warningMatch) {
+            results.warnings = parseInt(warningMatch[1], 10);
+        }
+
+        // Regex per contare errori
+        const errorMatch = line.match(/^\[INFO\] (\d+) error/);
+        if (errorMatch) {
+            results.errors = parseInt(errorMatch[1], 10);
         }
     });
-    for (const line of lines) {
-        if (line.includes("BUILD SUCCESS")) {
-            buildStatus = "SUCCESS";
-            break;
-        } else if (line.includes("BUILD FAILURE")) {
-            buildStatus = "FAILURE";
-            break;
-        }
-    }
-    console.log("[parseMavenOutput] Stato di build:", buildStatus);
-    return {
-        status: buildStatus,
-        rawOutput: output,
-    };
+
+	document.getElementById("error_compiler").textContent = results.errors;
+	document.getElementById("warning_compiler").textContent =  results.warnings;
+    return results;
 }
 
 async function ajaxRequest(url, method = "POST", data = null, isJson = true, dataType = "json") {
@@ -333,35 +303,38 @@ async function ajaxRequest(url, method = "POST", data = null, isJson = true, dat
 }
 
 function toggleLoading(showSpinner, divId, buttonId) {
-    const divElement = document.getElementById(divId);
-    if (!divElement) {
-        console.error(`Elemento con ID "${divId}" non trovato.`);
-        return;
-    }
-    const spinner = divElement.querySelector(".spinner-border");
-    const statusText = divElement.querySelector('[role="status"]');
-    const icon = divElement.querySelector("i");
-    if (showSpinner) {
-        spinner.style.display = "inline-block";
-        statusText.innerText = window.loading || "Loading...";
-        icon.style.display = "none";
-    } else {
-        spinner.style.display = "none";
-        statusText.innerText = statusText.getAttribute('data-title') || "";
-        icon.style.display = "inline-block";
-    }
+	const divElement = document.getElementById(divId);
+	const button = document.getElementById(buttonId);
+	if (!divElement) {
+		console.error(`Elemento con ID "${divId}" non trovato.`);
+		return;
+	}
+	const spinner = divElement.querySelector(".spinner-border");
+	const statusText = divElement.querySelector('[role="status"]');
+	const icon = divElement.querySelector("i");
+	if (showSpinner) {
+		spinner.style.display = "inline-block"; // Mostra lo spinner
+		statusText.innerText = loading; // Mostra il testo "Loading..."
+		icon.style.display = "none"; // Nascondi l'icona
+	} else {
+		spinner.style.display = "none"; // Nascondi lo spinner
+		statusText.innerText =  statusText.getAttribute('data-title'); // Nascondi il testo "Loading..."
+		icon.style.display = "inline-block"; // Mostra l'icona
+	}
 }
 
+// Definizione degli stati predefiniti
 const statusMessages = {
-    sending:    { showSpinner: true,  text: window.status_sending || "Invio..." },
-    loading:    { showSpinner: true,  text: window.status_loading || "Caricamento..." },
-    compiling:  { showSpinner: true,  text: window.status_compiling || "Compilazione in corso..." },
-    ready:      { showSpinner: false, text: window.status_ready || "Pronto" },
-    error:      { showSpinner: false, text: window.status_error || "Errore" },
-    turn_end:   { showSpinner: false, text: window.status_turn_end || "Turno terminato" },
-    game_end:   { showSpinner: false, text: window.status_game_end || "Partita terminata" }
+	sending:    { showSpinner: true,  text: status_sending	},
+    loading: 	{ showSpinner: true,  text: status_loading  },
+    compiling: 	{ showSpinner: true,  text: status_compiling},
+    ready: 		{ showSpinner: false, text: status_ready 	},
+    error: 		{ showSpinner: false, text: status_error    },
+	turn_end:   { showSpinner: false, text: status_turn_end },
+	game_end:   { showSpinner: false, text: status_game_end }
 };
 
+// Funzione per comunicare lo stato in cui si trova l'editor 
 function setStatus(statusName) {
     const divElement = document.getElementById("status_compiler");
     if (!divElement) {
@@ -369,20 +342,304 @@ function setStatus(statusName) {
         return;
     }
     const spinner = divElement.querySelector(".spinner-border");
-    const statusText = divElement.querySelector("#status_text");
+    const statusText = divElement.querySelector('#status_text');
     const icon = divElement.querySelector("i");
+    // Recupera le impostazioni per lo stato specificato
     const status = statusMessages[statusName];
     if (!status) {
         console.error(`Stato "${statusName}" non definito.`);
         return;
     }
+    // Controlla lo stato attuale dello spinner e inverte la visibilità
     if (status.showSpinner) {
-        spinner.style.display = "inline-block";
-        statusText.innerText = status.text;
-        icon.style.display = "none";
+        spinner.style.display = "inline-block"; // Mostra lo spinner
+        statusText.innerText = status.text; // Mostra il testo personalizzato
+        icon.style.display = "none"; // Nascondi l'icona
     } else {
-        spinner.style.display = "none";
-        statusText.innerText = status.text;
-        icon.style.display = "inline-block";
+        spinner.style.display = "none"; // Nascondi lo spinner
+        statusText.innerText = status.text; // Mostra il testo personalizzato
+        icon.style.display = "inline-block"; // Mostra l'icona
     }
+}
+
+function highlightCodeCoverage(reportContent, editor) {
+	// Analizza il contenuto del file di output di JaCoCo per individuare le righe coperte, non coperte e parzialmente coperte
+	// Applica lo stile appropriato alle righe del tuo editor
+	var coveredLines = [];
+	var uncoveredLines = [];
+	var partiallyCoveredLines = [];
+
+	reportContent.querySelectorAll("line").forEach(function (line) {
+		if (line.getAttribute("mi") == 0)
+			coveredLines.push(line.getAttribute("nr"));
+		else if (line.getAttribute("mb") > 0 && line.getAttribute("cb") > 0)
+			partiallyCoveredLines.push(line.getAttribute("nr"));
+		else uncoveredLines.push(line.getAttribute("nr"));
+	});
+
+	coveredLines.forEach(function (lineNumber) {
+		editor.removeLineClass(lineNumber - 2, "gutter", "bg-danger");
+		editor.removeLineClass(lineNumber - 2, "gutter", "bg-warning");
+		editor.addLineClass	(lineNumber - 2, "gutter", "  bg-success");
+	});
+
+	uncoveredLines.forEach(function (lineNumber) { 
+		editor.removeLineClass(lineNumber - 2, "gutter", "bg-warning");
+		editor.removeLineClass(lineNumber - 2, "gutter", "bg-success");
+		editor.addLineClass	(lineNumber - 2, "gutter", "bg-danger");
+	});
+
+	partiallyCoveredLines.forEach(function (lineNumber) { 
+		editor.removeLineClass(lineNumber - 2, "gutter", "bg-danger");
+		editor.removeLineClass(lineNumber - 2, "gutter", "bg-success");
+		editor.addLineClass	(lineNumber - 2, "gutter", "bg-warning");
+	});
+}
+async function ajaxRequest(
+	url,
+	method = "POST",
+	data = null,
+	isJson = true,
+	dataType = "json"
+) {
+	try {
+		const options = {
+			url: url,
+			type: method,
+			dataType: dataType,
+			processData: isJson, // Set to true to encode data properly
+			contentType: isJson
+				? "application/x-www-form-urlencoded; charset=UTF-8"
+				: false,
+			data: isJson && data ? $.param(data) : data, // Convert data to URL-encoded string
+		};
+
+		const response = await $.ajax(options);
+		return response;
+	} catch (error) {
+		console.error("Si è verificato un errore:", error);
+		throw error;
+	}
+}
+
+function controlloScalata(
+	iswin,
+	current_round_scalata,
+	total_rounds_scalata,
+	displayRobotPoints
+) {
+	// Check if the player has won the round
+	if (isWin) {
+		/*The player has won the round, check if the player has 
+        completed the Scalata (current_round_scalata == total_rounds_scalata)
+        */
+		if (current_round_scalata == total_rounds_scalata) {
+			// alert("Hai completato la scalata!");
+			calculateFinalScore(localStorage.getItem("scalataId"))
+				.then((data) => {
+					console.log("calculateFinalScore response: ", data.finalScore);
+					closeScalata(
+						localStorage.getItem("scalataId"),
+						true,
+						data.finalScore,
+						current_round_scalata
+					).then((data) => {
+						swal(
+							"Complimenti!",
+							`Hai completato la scalata!\n${displayRobotPoints}\n A breve verrai reindirizzato alla classifica.`,
+							"success"
+						).then((value) => {
+							window.location.href = "/leaderboardScalata";
+						});
+					});
+				})
+				.catch((error) => {
+					console.log("Error:", error);
+					swal(
+						"Errore!",
+						"Si è verificato un errore durante il recupero dei dati. Riprovare.",
+						"error"
+					);
+				});
+		} else {
+			//The player has completed the round, not the Scalata
+			swal(
+				"Complimenti!",
+				`Hai completato il round ${current_round_scalata}/${total_rounds_scalata}!\n${displayRobotPoints}`,
+				"success"
+			).then((value) => {
+				current_round_scalata++;
+				localStorage.setItem("current_round_scalata", current_round_scalata);
+				classe = getScalataClasse(
+					current_round_scalata - 1,
+					localStorage.getItem("scalata_classes")
+				);
+				localStorage.setItem("classe", classe);
+				console.log(
+					"[editor.js] classes in scalata: " +
+						localStorage.getItem("scalata_classes") +
+						"\n\
+                      selected class: " +
+						classe
+				);
+				incrementScalataRound(
+					localStorage.getItem("scalataId"),
+					current_round_scalata
+				)
+					.then((data) => {
+						console.log(
+							"[editor.js] Creating new game for next round in scalata with parameters: \
+                Robot: evosuite\n\
+                Classe: " +
+								classe +
+								"\n\
+                Difficulty: 1\n\
+                ScalataId: " +
+								localStorage.getItem("scalataId") +
+								"\n\
+                Username: " +
+								localStorage.getItem("username") +
+								"."
+						);
+						createGame(
+							"evosuite",
+							classe,
+							1,
+							localStorage.getItem("scalataId"),
+							localStorage.getItem("username")
+						).then((data) => {
+							console.log(data);
+							window.location.href = "/editor";
+						});
+					})
+					.catch((error) => {
+						console.log("Error:", error);
+						swal(
+							"Errore!",
+							"Si è verificato un errore durante il recupero dei dati. Riprovare.",
+							"error"
+						);
+					});
+			});
+		}
+	} else {
+		//The player has lost the round
+		closeScalata(
+			localStorage.getItem("scalataId"),
+			false,
+			0,
+			current_round_scalata
+		)
+			.then((data) => {
+				console.log("Close Scalata response: ", data);
+				swal(
+					"Peccato!",
+					`Hai perso al round ${current_round_scalata}/${total_rounds_scalata} della scalata, la prossima volta andrà meglio!\n${displayRobotPoints}`,
+					"error"
+				).then((value) => {
+					window.location.href = "/main";
+				});
+			})
+			.catch((error) => {
+				console.log("Error:", error);
+				swal(
+					"Errore!",
+					"Si è verificato un errore durante il recupero dei dati. Riprovare.",
+					"error"
+				);
+			});
+	}
+}
+// === FUNZIONI DI UTILITÀ PER L'EDITOR E LA SESSIONE ===
+
+//Funzione per fare il replace del testo dell'editor 
+function replaceText(text, replacements) {
+    return text.replace(/\b(TestClasse|username|userID|date)\b/g, match => replacements[match] || match);
+}
+
+function SetInitialEditor(replacements) {
+    const text = editor_utente.getValue();
+    console.log("[SetInitialEditor] Testo originale:", text);
+    const newContent = replaceText(text, replacements);
+    console.log("[SetInitialEditor] Testo aggiornato:", newContent);
+    editor_utente.setValue(newContent);
+}
+
+//Ottieni parametro dal URL
+function getParameterByName(name) {
+    const url = window.location.href;
+    name = name.replace(/[\[\]]/g, "\\$&");
+    const regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)");
+    const results = regex.exec(url);
+    if (!results) return null;
+    if (!results[2]) return "";
+    return decodeURIComponent(results[2].replace(/\+/g, " "));
+}
+
+//DA CONTROLLARE
+function GetMode() {
+    const mode = getParameterByName("mode");
+    if (mode) {
+        const trimmed = mode.replace(/[^a-zA-Z0-9\s]/g, " ").trim();
+        return (trimmed.toLowerCase() === "sfida") ? "Sfida" : trimmed;
+    }
+    return "Sfida";
+}
+
+// modal info
+function openModalWithText(text_title, text_content, buttons = []) {
+	document.getElementById('Modal_title').innerText = text_title;
+	// Imposta il testo nel corpo del modal
+	document.getElementById('Modal_body').innerText = text_content;
+
+	// Pulisci eventuali bottoni esistenti nel footer
+	var modalFooter = document.getElementById('Modal_footer');
+	modalFooter.innerHTML = '';
+
+	// Aggiungi bottoni personalizzati se sono stati forniti
+	if (buttons.length > 0) {
+		buttons.forEach(button => {
+			let btn = document.createElement('a');
+			btn.innerText = button.text;
+			btn.href = button.href;  // Assegna il link al pulsante
+			btn.className = button.class || 'btn btn-primary'; // Classe di default se non specificata
+			btn.target = button.target || '_self'; // Target opzionale, default è nella stessa finestra
+			modalFooter.appendChild(btn);
+		});
+	}
+
+	// Ottieni il modal
+	var modal = new bootstrap.Modal(document.getElementById('Modal'));
+
+	// Mostra il modal
+	modal.show();
+}
+
+// modal error 
+function openModalError(text_title, text_content, buttons = []) {
+	document.getElementById('modal_error_title').innerText = text_title;
+	// Imposta il testo nel corpo del modal
+	document.getElementById('modal_error_body').innerText = text_content;
+
+	// Pulisci eventuali bottoni esistenti nel footer
+	var modalFooter = document.getElementById('modal_error_footer');
+	modalFooter.innerHTML = '';
+
+	// Aggiungi bottoni personalizzati se sono stati forniti
+	if (buttons.length > 0) {
+		buttons.forEach(button => {
+			let btn = document.createElement('a');
+			btn.innerText = button.text;
+			btn.href = button.href;  // Assegna il link al pulsante
+			btn.className = button.class || 'btn btn-primary'; // Classe di default se non specificata
+			btn.target = button.target || '_self'; // Target opzionale, default è nella stessa finestra
+			modalFooter.appendChild(btn);
+		});
+	}
+
+	// Ottieni il modal
+	var modal = new bootstrap.Modal(document.getElementById('Modal_error'));
+
+	// Mostra il modal
+	modal.show();
 }
